@@ -1,7 +1,7 @@
 extends Node
 
 
-@rpc(any_peer, call_local) func CreateThePlayer(charname,gender,house, loc, locSpawnPos, network_id):
+@rpc("any_peer", "call_local") func CreateThePlayer(charname,gender,house, loc, locSpawnPos, network_id):
 		if(Global.DEBUG_Mode):
 			print("Creating character for ", network_id)
 			print("[NetworkFunc/CreateThePlayer] - RPC Sender ID ->", get_tree().get_remote_sender_id())
@@ -17,6 +17,6 @@ extends Node
 		player.SetupPlayer(house, charname, gender)
 		Teleport.TeleportPos(player, locSpawnPos, null)
 
-@rpc(any_peer, call_local) func RemovePlayerFromWorld(id):
+@rpc("any_peer", "call_local") func RemovePlayerFromWorld(id):
 	var target = NetworkManager.Network.PlayerContainer.get_node(str(id))
 	if(target != null): target.queue_free()

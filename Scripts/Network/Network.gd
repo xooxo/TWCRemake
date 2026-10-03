@@ -27,7 +27,7 @@ func _ready():
 func create_server():
 	var peer = ENetMultiplayerPeer.new()
 	peer.create_server(DEFAULT_PORT, MAX_PLAYERS)
-	get_tree().set_multiplayer_peer(peer)
+	get_tree().get_multiplayer().set_multiplayer_peer(peer)
 	set_multiplayer_authority(1)
 	print(str("[Networking]: Server created // Server IP -> " + DEFAULT_IP))
 	world_state["T"] = Time.get_ticks_msec() #(Max): I don't remember why I needed to set a timestamp this early but the game throws an error randomly if I don't so I'm leaving this here.
@@ -36,17 +36,17 @@ func create_server():
 	DayAndNightV2.StartCycle()
 
 func connect_to_server(ip : String):
-	get_tree().connect('connected_to_server',Callable(self,'_connected_to_server'))
+	get_tree().get_multiplayer().connect('connected_to_server',Callable(self,'_connected_to_server'))
 	var peer = ENetMultiplayerPeer.new()
 	if(ip == ""):
 		peer.create_client(DEFAULT_IP, DEFAULT_PORT)
 	else:
 		peer.create_client(ip, DEFAULT_PORT)
-	get_tree().set_multiplayer_peer(peer)
+	get_tree().get_multiplayer().set_multiplayer_peer(peer)
 	world_state["T"] = Time.get_ticks_msec()
 
 func _connected_to_server():
-	var local_player_id = get_tree().get_unique_id()
+	var local_player_id = get_tree().get_multiplayer().get_unique_id()
 	print_debug("[Networking]: Connected to server as", local_player_id ,". Loading game..")
 	world_state["T"] = Time.get_ticks_msec()
 	Data.main_node.ShowLoginScreen()
@@ -70,8 +70,8 @@ func _on_player_connected(connected_player_id):
 		print("\n[Networking] - Check Wolrd_State ->", world_state)
 		print("\n[Networking] - World3D State Size ->", str(world_state.size())) #Server side debugging
 
-@rpc(any_peer, call_local) func SendData(state):
-	var playerID = get_tree().get_remote_sender_id()
+@rpc("any_peer", "call_local") func SendData(state):
+	var playerID = get_tree().get_multiplayer().get_remote_sender_id()
 	if(world_data.has(playerID)):
 		if(world_data[playerID]["T"] < state["T"]):
 			world_data[playerID] = state
@@ -82,7 +82,7 @@ func SendWorldState(state):
 	if(is_multiplayer_authority()):
 		rpc_id(0, "GetWorldState", state)
 	
-@rpc(any_peer, call_local) func GetWorldState(state):
+@rpc("any_peer", "call_local") func GetWorldState(state):
 	###NOTE: Do NOT print anything here for any reason.###
 	###If you do,then remove_at it before pushing a change###
 	if(!state.is_empty()):
@@ -91,18 +91,18 @@ func SendWorldState(state):
 			last_world_state = state["T"]
 			state.erase("T")
 			#state.erase(1) #This prevents the server from creating an empty player
-			state.erase(get_tree().get_unique_id()) #This removes the client from the list so we can focus checked the other players
+			state.erase(get_tree().get_multiplayer().get_unique_id()) #This removes the client from the list so we can focus checked the other players
 			for player in state.keys():
 				Data.main_node.Map.get_node(str(player)).UpdatePlayer(state[player]["P"], state[player]["A"], state[player]["LD"], state[player]["D"], state[player]["SP"])
 
-@rpc(any_peer) func CreateActivePlayers(id): #Creates all players checked the server checked the client
+@rpc("any_peer") func CreateActivePlayers(id): #Creates all players checked the server checked the client
 	for player in Data.main_node.Map.players.get_children():
 		if(str(player.name) == str(id)): return
 		var data : Dictionary = player.GetSavePlayerInfo()
 		#Tell the client to create this player with their correct data
 		NetworkManager.Functions.rpc_id(id, "CreateThePlayer", data["N"], int(data["G"]), int(data["H"]), null, Vector2(int(data["vx"]), int(data["vy"])), int(player.name))
 		
-@rpc(any_peer) func GetSavedPlayerData(key, id): #Sends the player's savefile to him, the savefile *should* only exist checked the server.
+@rpc("any_peer") func GetSavedPlayerData(key, id): #Sends the player's savefile to him, the savefile *should* only exist checked the server.
 	var file = FileAccess.open(str("user://saves/" + key + ".json"), FileAccess.READ)
 	if(file == OK):
 		var dfile = file.get_as_text()
@@ -114,14 +114,14 @@ func SendWorldState(state):
 		else:
 			Data.main_node.MainMenu.saveddata = data
 
-@rpc(any_peer) func SetSpellState():
+@rpc("any_peer") func SetSpellState():
 	spells_ID += 1
 	rpc_id(0, "SetSpellIDOnAll", spells_ID)
 	
-@rpc(any_peer) func SetSpellIDOnAll(newID):
+@rpc("any_peer") func SetSpellIDOnAll(newID):
 	spells_ID = newID
 	
-@rpc(any_peer) func SendSpellState():
+@rpc("any_peer") func SendSpellState():
 	rpc("SetSpellState")
 
 func RemovePlayerID(id): #Responisble for erasing the player key and making sure it's no longer in world_state
@@ -129,14 +129,14 @@ func RemovePlayerID(id): #Responisble for erasing the player key and making sure
 	RemoveActiveKey(server_player_dic[id].playerkey)
 	if(world_state.has(id)): world_state.erase(id)
 	
-@rpc(any_peer, call_local) func GetActiveKeys(): #Tell all clients what clients are online and playing right now.
+@rpc("any_peer", "call_local") func GetActiveKeys(): #Tell all clients what clients are online and playing right now.
 	rpc_id(0, "SetActiveKeys", ActiveKeys)
 	
-@rpc(any_peer) func SetActiveKeys(Active):
+@rpc("any_peer") func SetActiveKeys(Active):
 	ActiveKeys = Active
 
-@rpc(any_peer) func AddActiveKey(key): #Add player who's actively playing right now
-	var online_id = get_tree().get_remote_sender_id()
+@rpc("any_peer") func AddActiveKey(key): #Add player who's actively playing right now
+	var online_id = get_tree().get_multiplayer().get_remote_sender_id()
 	ActiveKeys[key] = {"ID": online_id}
 	GetActiveKeys()
 	
