@@ -20,8 +20,8 @@ signal server_disconnected
 
 func _ready():
 	#Connect signals
-	get_tree().connect('peer_disconnected',Callable(self,'_on_player_disconnected'))
-	get_tree().connect('peer_connected',Callable(self,'_on_player_connected'))
+	get_tree().get_multiplayer().connect('peer_disconnected',Callable(self,'_on_player_disconnected'))
+	get_tree().get_multiplayer().connect('peer_connected',Callable(self,'_on_player_connected'))
 	#Create the container that will have the players
 	
 func create_server():

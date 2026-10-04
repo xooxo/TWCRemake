@@ -179,7 +179,7 @@ func CreateThePlayer(charname):
 		NetworkManager.Network.rpc_id(1, "GetActiveKeys")
 	else:
 		NetworkManager.Network.GetActiveKeys()
-	NetworkManager.Functions.rpc_id(0, "CreateThePlayer", charname, selecteditemG,selectitemH, DiagonAlley, DiagonAlleySpawnPos, get_tree().get_unique_id())
+	NetworkManager.Functions.rpc_id(0, "CreateThePlayer", charname, selecteditemG,selectitemH, DiagonAlley, DiagonAlleySpawnPos, get_tree().get_multiplayer().get_unique_id())
 	Data.main_node.UI_Chat.SendText(0, str(charname + " logged in."), "")
 	if(playeruniqueID != 1):
 		NetworkManager.Network.rpc_id(1, "CreateActivePlayers", get_tree().get_multiplayer().get_unique_id())
